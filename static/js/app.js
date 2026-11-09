@@ -17,7 +17,7 @@
       progress: { evaluated_count: 0, total_candidates: 0, percentage: 0 },
       currentCandidate: null,
       selectedScores: {},
-      filter: "all",
+      filter: "pending",
       searchQuery: ""
     },
     admin: {
@@ -28,7 +28,9 @@
       rankings: [],
       matrix: null,
       stats: null,
-      settings: {}
+      settings: {},
+      podiumRevealed: { 1: true, 2: true, 3: true },
+      podiumCache: null
     }
   };
 
@@ -676,7 +678,11 @@
     const filter = state.judge.filter;
     const query = state.judge.searchQuery.toLowerCase();
 
-    const filtered = state.judge.candidates.filter(c => {
+    const sorted = state.judge.candidates.slice().sort((a, b) => {
+      if (a.is_evaluated === b.is_evaluated) return 0;
+      return a.is_evaluated ? 1 : -1; // pending first
+    });
+    const filtered = sorted.filter(c => {
       if (filter === "pending" && c.is_evaluated) return false;
       if (filter === "evaluated" && !c.is_evaluated) return false;
       if (query && !c.name.toLowerCase().includes(query) && !(c.number || "").includes(query)) return false;
@@ -930,55 +936,192 @@
     document.getElementById("kpiCompletionPercentage").textContent = `${stats.completion_percentage}%`;
     document.getElementById("kpiTotalNotes").textContent = `${stats.total_evaluations_recorded} notas registradas`;
 
-    renderWinnerSpotlight(res.winners, res.is_winner_tie, stats.voting_status, stats.show_provisional_winner);
+    state.admin.rankings = res.rankings || [];
+    renderTopThreePodium(res.rankings || [], res.winners, res.is_winner_tie, stats.voting_status, stats.show_provisional_winner);
   }
 
-  function renderWinnerSpotlight(winners, isTie, votingStatus, showProvisional) {
+  function renderTopThreePodium(rankings, winners, isTie, votingStatus, showProvisional) {
+    state.admin.podiumCache = { rankings, winners, isTie, votingStatus, showProvisional };
+    renderTopThreePodiumUI();
+  }
+
+  function renderTopThreePodiumUI() {
     const container = document.getElementById("winnerSpotlight");
     if (!container) return;
 
-    if (!winners || winners.length === 0) {
+    const cache = state.admin.podiumCache;
+    if (!cache) return;
+
+    const rankings = cache.rankings || [];
+    const votingStatus = cache.votingStatus;
+    const isClosed = votingStatus === "CLOSED";
+
+    // Filtrar candidatos com notas válidas
+    const evaluatedRankings = rankings.filter(c => c.total_scores_count > 0);
+
+    if (evaluatedRankings.length === 0) {
       container.innerHTML = `
-        <div style="text-align: center; padding: 1.5rem;">
-          <h3 style="color: #fbbf24; font-size: 1.2rem; font-weight: 700;">Aguardando Primeiras Avaliações</h3>
-          <p style="color: #cbd5e1; font-size: 0.85rem; margin-top: 0.3rem;">Assim que os juízes confirmarem suas notas, o vencedor e a classificação serão computados automaticamente.</p>
+        <div style="text-align: center; padding: 2rem 1rem;">
+          <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🏆</div>
+          <h3 style="color: var(--kor-orange); font-size: 1.25rem; font-weight: 700;">Aguardando Primeiras Avaliações</h3>
+          <p style="color: #cbd5e1; font-size: 0.88rem; margin-top: 0.35rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+            Assim que os juízes confirmarem suas notas, os 3 primeiros colocados e a classificação serão computados automaticamente.
+          </p>
         </div>
       `;
       return;
     }
 
-    const isClosed = votingStatus === "CLOSED";
     const headerTitle = isClosed
-      ? (isTie ? "🏆 Vencedores Oficiais do Evento (Empate em 1º Lugar)" : "🏆 Vencedor Oficial do Evento")
-      : (isTie ? "⏳ Líderes Provisórios (Empate em 1º Lugar)" : "⏳ Vencedor Provisório (Apuração em Andamento)");
+      ? "🏆 Pódio Oficial do Evento — 3 Primeiros Colocados"
+      : "⏳ Pódio Provisório — 3 Primeiros Colocados (Apuração em Andamento)";
 
-    let winnersHtml = "";
-    winners.forEach(w => {
-      winnersHtml += `
-        <div class="winner-candidate-box" style="margin-top: 0.75rem;">
-          <div class="winner-trophy-badge">
-            <span>🏆</span>
+    const rev = state.admin.podiumRevealed || { 1: true, 2: true, 3: true };
+    const allHidden = !rev[1] && !rev[2] && !rev[3];
+
+    const headerActionsHtml = `
+      <div class="podium-header-actions">
+        <button class="podium-btn-action" onclick="window.hideAllWinners()" title="Ocultar nomes e pontuações dos 3 colocados para a apresentação em telão">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+          <span>Ocultar vencedores</span>
+        </button>
+        <button class="podium-btn-action ${allHidden ? 'btn-accent' : ''}" onclick="window.revealAllWinners()" title="Revelar todos os 3 colocados de uma só vez">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Revelar todos</span>
+        </button>
+      </div>
+    `;
+
+    const placesConfig = [
+      { place: 1, label: "1º Lugar", trophy: "🥇", cardClass: "podium-card-1" },
+      { place: 2, label: "2º Lugar", trophy: "🥈", cardClass: "podium-card-2" },
+      { place: 3, label: "3º Lugar", trophy: "🥉", cardClass: "podium-card-3" }
+    ];
+
+    let cardsHtml = "";
+    placesConfig.forEach(cfg => {
+      const p = cfg.place;
+      const cand = evaluatedRankings[p - 1] || null;
+      const isRevealed = !!rev[p];
+
+      if (!cand) {
+        cardsHtml += `
+          <div class="podium-card ${cfg.cardClass}" style="opacity: 0.6;">
+            <div class="podium-card-header">
+              <span class="podium-badge-rank">${cfg.trophy} ${cfg.label}</span>
+              <span class="podium-trophy-icon">${cfg.trophy}</span>
+            </div>
+            <div class="podium-card-body">
+              <p style="color: #94A3B8; font-size: 0.85rem; text-align: center;">Posição em aberto (aguardando notas)</p>
+            </div>
+            <div class="podium-score-row">
+              <div>
+                <div class="podium-score-val" style="color: #64748B;">---</div>
+                <div class="podium-score-lbl">Pontuação Final</div>
+              </div>
+            </div>
           </div>
-          <div class="winner-info">
-            <h3>${w.name} ${isTie ? '<span class="badge badge-tie">Empate</span>' : ''}</h3>
-            <p style="color: #cbd5e1; font-size: 0.85rem;">Inscrição Nº ${w.number || w.id} • ${w.judges_evaluated_count} juízes avaliaram • ${w.total_scores_count} notas computadas</p>
+        `;
+        return;
+      }
+
+      const tieBadge = cand.is_tie ? `<span class="badge badge-tie" style="margin-left: 0.35rem;">Empate</span>` : "";
+
+      if (isRevealed) {
+        cardsHtml += `
+          <div class="podium-card ${cfg.cardClass} is-revealed">
+            <div class="podium-card-header">
+              <span class="podium-badge-rank">${cfg.trophy} ${cfg.label}</span>
+              <button class="podium-hide-btn" onclick="window.hideWinnerPlace(${p})" title="Ocultar esta colocação">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                <span>Ocultar</span>
+              </button>
+            </div>
+            <div class="podium-card-body">
+              <h3 class="podium-cand-name">${cand.name} ${tieBadge}</h3>
+              <span class="podium-cand-sub">Inscrição Nº ${cand.number || cand.id} • ${cand.judges_evaluated_count} juízes</span>
+            </div>
+            <div class="podium-score-row">
+              <div>
+                <div class="podium-score-val">${cand.final_average_formatted}</div>
+                <div class="podium-score-lbl">Pontuação Final</div>
+              </div>
+              <span class="podium-trophy-icon">${cfg.trophy}</span>
+            </div>
           </div>
-          <div class="winner-score-badge">
-            <div class="winner-score-val">${w.final_average_formatted}</div>
-            <div class="winner-score-lbl">Média Final</div>
+        `;
+      } else {
+        cardsHtml += `
+          <div class="podium-card ${cfg.cardClass} is-hidden">
+            <div class="podium-card-header">
+              <span class="podium-badge-rank">${cfg.trophy} ${cfg.label}</span>
+              <span class="podium-trophy-icon">${cfg.trophy}</span>
+            </div>
+            <div class="podium-card-body">
+              <div class="podium-secret-box">
+                <div class="podium-secret-dots">••••••••••</div>
+                <span class="podium-secret-hint">Posição Oculta</span>
+              </div>
+            </div>
+            <div class="podium-score-row">
+              <div>
+                <div class="podium-score-val" style="letter-spacing: 0.15em;">••••</div>
+                <div class="podium-score-lbl">Pontuação Final</div>
+              </div>
+            </div>
+            <div class="podium-card-footer">
+              <button class="podium-reveal-btn" onclick="window.revealWinnerPlace(${p})">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span>Revelar ${cfg.label}</span>
+              </button>
+            </div>
           </div>
-        </div>
-      `;
+        `;
+      }
     });
 
     container.innerHTML = `
-      <div class="winner-badge-header">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-        <span>${headerTitle}</span>
+      <div class="podium-header-bar">
+        <div class="podium-header-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+          <span>${headerTitle}</span>
+        </div>
+        ${headerActionsHtml}
       </div>
-      ${winnersHtml}
+      <div class="podium-grid">
+        ${cardsHtml}
+      </div>
     `;
   }
+
+  function renderWinnerSpotlight(winners, isTie, votingStatus, showProvisional) {
+    renderTopThreePodium(state.admin.rankings || [], winners, isTie, votingStatus, showProvisional);
+  }
+
+  window.hideAllWinners = function () {
+    state.admin.podiumRevealed = { 1: false, 2: false, 3: false };
+    renderTopThreePodiumUI();
+    showToast("Vencedores ocultados para apresentação.", "info");
+  };
+
+  window.revealAllWinners = function () {
+    state.admin.podiumRevealed = { 1: true, 2: true, 3: true };
+    renderTopThreePodiumUI();
+    showToast("Todos os vencedores foram revelados!", "success");
+  };
+
+  window.revealWinnerPlace = function (place) {
+    if (!state.admin.podiumRevealed) state.admin.podiumRevealed = {};
+    state.admin.podiumRevealed[place] = true;
+    renderTopThreePodiumUI();
+    showToast(`${place}º colocado revelado!`, "success");
+  };
+
+  window.hideWinnerPlace = function (place) {
+    if (!state.admin.podiumRevealed) state.admin.podiumRevealed = {};
+    state.admin.podiumRevealed[place] = false;
+    renderTopThreePodiumUI();
+  };
 
   async function loadAdminRankings() {
     const res = await apiRequest("/api/admin/rankings");

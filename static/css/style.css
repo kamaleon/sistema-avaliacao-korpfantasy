@@ -1121,6 +1121,317 @@ body {
   margin-top: 0.25rem;
 }
 
+/* =========================================================================
+   Pódio e Top 3 Vencedores (Apresentação / Telão ADM)
+   ========================================================================= */
+
+.podium-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 2;
+}
+
+.podium-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--kor-orange);
+}
+
+.podium-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.podium-btn-action {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #F8FAFC;
+}
+
+.podium-btn-action:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.podium-btn-action.btn-accent {
+  background: linear-gradient(135deg, var(--kor-red), var(--kor-orange));
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 2px 8px rgba(255, 47, 28, 0.3);
+}
+
+.podium-btn-action.btn-accent:hover {
+  box-shadow: 0 4px 12px rgba(255, 94, 3, 0.4);
+}
+
+.podium-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  position: relative;
+  z-index: 2;
+}
+
+.podium-card {
+  background: rgba(18, 18, 20, 0.85);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+}
+
+.podium-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Destaque individual por colocação */
+.podium-card-1 {
+  border-color: rgba(255, 94, 3, 0.55);
+  background: linear-gradient(180deg, rgba(255, 94, 3, 0.12) 0%, rgba(20, 20, 22, 0.95) 100%);
+  box-shadow: 0 6px 20px rgba(255, 94, 3, 0.15);
+}
+
+.podium-card-2 {
+  border-color: rgba(148, 163, 184, 0.45);
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.10) 0%, rgba(20, 20, 22, 0.95) 100%);
+}
+
+.podium-card-3 {
+  border-color: rgba(217, 119, 6, 0.45);
+  background: linear-gradient(180deg, rgba(217, 119, 6, 0.10) 0%, rgba(20, 20, 22, 0.95) 100%);
+}
+
+.podium-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.podium-badge-rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+}
+
+.podium-card-1 .podium-badge-rank {
+  background: rgba(255, 94, 3, 0.2);
+  color: #FFA477;
+  border: 1px solid rgba(255, 94, 3, 0.4);
+}
+
+.podium-card-2 .podium-badge-rank {
+  background: rgba(148, 163, 184, 0.2);
+  color: #E2E8F0;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.podium-card-3 .podium-badge-rank {
+  background: rgba(217, 119, 6, 0.2);
+  color: #FCD34D;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+}
+
+.podium-trophy-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.podium-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100px;
+  margin-bottom: 1rem;
+}
+
+.podium-cand-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin-bottom: 0.3rem;
+  word-break: break-word;
+  line-height: 1.25;
+}
+
+.podium-cand-sub {
+  font-size: 0.8rem;
+  color: #94A3B8;
+  display: block;
+}
+
+/* Estado Oculto */
+.podium-secret-box {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 0.75rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.podium-secret-dots {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.4);
+  user-select: none;
+}
+
+.podium-secret-hint {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+}
+
+/* Pontuação */
+.podium-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.podium-score-val {
+  font-family: var(--font-mono);
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--kor-orange);
+  line-height: 1;
+}
+
+.podium-card-1 .podium-score-val {
+  color: var(--kor-orange);
+}
+
+.podium-card-2 .podium-score-val {
+  color: #E2E8F0;
+}
+
+.podium-card-3 .podium-score-val {
+  color: #FCD34D;
+}
+
+.podium-score-lbl {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94A3B8;
+  margin-top: 0.2rem;
+}
+
+.podium-card-footer {
+  margin-top: 0.75rem;
+}
+
+.podium-reveal-btn {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--kor-red), var(--kor-orange));
+  color: white;
+  border: none;
+  box-shadow: 0 2px 8px rgba(255, 47, 28, 0.35);
+  transition: all 0.2s ease;
+}
+
+.podium-reveal-btn:hover {
+  box-shadow: 0 4px 14px rgba(255, 94, 3, 0.5);
+  transform: translateY(-1px);
+}
+
+.podium-hide-btn {
+  font-size: 0.72rem;
+  color: #94A3B8;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: color 0.15s ease;
+}
+
+.podium-hide-btn:hover {
+  color: #F8FAFC;
+  text-decoration: underline;
+}
+
+@media (max-width: 992px) {
+  .podium-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .podium-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .podium-header-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .podium-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
 /* Cards Genéricos */
 .card {
   background: var(--bg-card);

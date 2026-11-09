@@ -523,7 +523,8 @@ def handle_admin_dashboard(req: Request):
             "success": True,
             "stats": stats,
             "winners": rankings_data["winners"],
-            "is_winner_tie": rankings_data["is_winner_tie"]
+            "is_winner_tie": rankings_data["is_winner_tie"],
+            "rankings": rankings_data["rankings"]
         })
     finally:
         conn.close()

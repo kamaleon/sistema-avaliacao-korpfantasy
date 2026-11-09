@@ -976,6 +976,68 @@ class TestCandidateEvaluationSystem(unittest.TestCase):
         finally:
             conn.close()
 
+    # -------------------------------------------------------------------------
+    # 27. Validação do Dashboard do ADM: Pódio e Top 3 Colocados
+    # -------------------------------------------------------------------------
+    def test_admin_dashboard_top_three_podium(self):
+        """
+        Garante que o endpoint do Dashboard do ADM (/api/admin/dashboard)
+        disponibilize os dados de rankings para apresentação dos 3 primeiros colocados.
+        """
+        admin_headers = {"Authorization": f"Bearer {self.admin_token}"}
+        status, _, data, _ = self.client.get("/api/admin/dashboard", headers=admin_headers)
+        self.assertEqual(status, 200)
+        self.assertTrue(data.get("success"))
+        self.assertIn("rankings", data)
+        self.assertIn("stats", data)
+        self.assertIn("winners", data)
+        self.assertIsInstance(data["rankings"], list)
+
+        # Simular submissão de votos para 3 candidatos diferentes e validar o pódio
+        judge_headers = {"Authorization": f"Bearer {self.judge_token}"}
+        conn = get_db_connection(self.temp_db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM categories WHERE active = 1")
+        cats = [r["id"] for r in cur.fetchall()]
+        conn.close()
+
+        # Candidato 1 recebe notas 10
+        self.client.post("/api/judge/vote", body={
+            "candidate_id": 1,
+            "scores": {str(c): 10 for c in cats}
+        }, headers=judge_headers)
+
+        # Candidato 2 recebe notas 9
+        self.client.post("/api/judge/vote", body={
+            "candidate_id": 2,
+            "scores": {str(c): 9 for c in cats}
+        }, headers=judge_headers)
+
+        # Candidato 3 recebe notas 8
+        self.client.post("/api/judge/vote", body={
+            "candidate_id": 3,
+            "scores": {str(c): 8 for c in cats}
+        }, headers=judge_headers)
+
+        # Reconsultar dashboard
+        status, _, data, _ = self.client.get("/api/admin/dashboard", headers=admin_headers)
+        self.assertEqual(status, 200)
+        rankings = data["rankings"]
+        evaluated = [c for c in rankings if c["total_scores_count"] > 0]
+        self.assertGreaterEqual(len(evaluated), 3)
+
+        first = evaluated[0]
+        second = evaluated[1]
+        third = evaluated[2]
+
+        self.assertEqual(first["rank"], 1)
+        self.assertEqual(first["final_average_formatted"], "10.00")
+        self.assertEqual(second["rank"], 2)
+        self.assertEqual(second["final_average_formatted"], "9.00")
+        self.assertEqual(third["rank"], 3)
+        self.assertEqual(third["final_average_formatted"], "8.00")
+
+
 
 
 if __name__ == "__main__":
